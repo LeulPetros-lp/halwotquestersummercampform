@@ -36,6 +36,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isAgeFocused, setIsAgeFocused] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -182,8 +183,15 @@ const Register = () => {
                     placeholder="Enter age"
                     min="13"
                     {...register("age")}
+                    onFocus={() => setIsAgeFocused(true)}
+                    onBlur={() => setIsAgeFocused(false)}
                     className="w-full max-w-none h-11 sm:h-12 bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 text-base"
                   />
+                  <div className={`transition-all duration-300 overflow-hidden ${isAgeFocused ? 'max-h-20' : 'max-h-0'}`}>
+                    <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-2 text-xs sm:text-sm mt-1 rounded">
+                      <p>Please enter your age. You must be at least 13 years old to register.</p>
+                    </div>
+                  </div>
                   {errors.age && (
                     <p className="text-red-300 text-xs sm:text-sm mt-1">
                       {errors.age.message}
