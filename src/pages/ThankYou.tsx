@@ -72,7 +72,7 @@ const ThankYou = () => {
                       </p>
                       <p className="text-gray-600">
                         <a href="tel:+251934815617" className="hover:text-orange-500 transition-colors">
-                          +251 934 815 617
+                        +251 903 412 222
                         </a>
                       </p>
                     </div>

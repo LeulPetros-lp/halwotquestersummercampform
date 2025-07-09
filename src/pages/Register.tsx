@@ -17,7 +17,11 @@ import { submitRegistration, checkIfRegistered } from "@/lib/api";
 
 const registrationSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  age: z.string().min(1, "Age is required"),
+  age: z.string()
+    .min(1, "Age is required")
+    .refine((val) => parseInt(val) >= 13, {
+      message: "You must be at least 13 years old to register",
+    }),
   parentName: z.string().min(2, "Parent/Guardian name is required"),
   emergencyContact: z.string()
     .length(8, "Phone number must be 8 digits")
@@ -146,8 +150,9 @@ const Register = () => {
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
-              <div className="w-full max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 [&>*:nth-child(5)]:sm:col-span-2 [&>*:nth-child(5)]:max-w-md [&>*:nth-child(5)]:mx-auto">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
+              {/* Input Fields Grid */}
+              <div className="w-full max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {/* Full Name */}
                 <div className="space-y-1.5 sm:space-y-2 w-full">
                   <Label htmlFor="fullName" className="text-white text-sm sm:text-base">
@@ -175,7 +180,7 @@ const Register = () => {
                     id="age"
                     type="number"
                     placeholder="Enter age"
-                    min="1"
+                    min="13"
                     {...register("age")}
                     className="w-full max-w-none h-11 sm:h-12 bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 text-base"
                   />
@@ -235,16 +240,21 @@ const Register = () => {
                   )}
                 </div>
 
-                {/* Grade */}
-                <div className="space-y-1.5 sm:space-y-2 w-full sm:col-span-2">
+
+
+
+              </div>
+
+              {/* Grade Section */}
+              <div className="w-full max-w-4xl mx-auto space-y-6">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="grade" className="text-white text-sm sm:text-base">
                     Grade <span className="text-red-500">*</span>
                   </Label>
-                  <div className="max-w-2xl">
-                    <Select onValueChange={(value) => setValue("grade", value)}>
-                      <SelectTrigger className="w-full h-11 sm:h-12 bg-white/90 focus:ring-2 focus:ring-orange-500 border-white/30 text-base">
-                        <SelectValue placeholder="Select grade" />
-                      </SelectTrigger>
+                  <Select onValueChange={(value) => setValue("grade", value)}>
+                    <SelectTrigger className="w-full h-11 sm:h-12 bg-white/90 focus:ring-2 focus:ring-orange-500 border-white/30 text-base">
+                      <SelectValue placeholder="Select grade" />
+                    </SelectTrigger>
                     <SelectContent className="bg-white text-base">
                       <SelectItem value="7">Grade 7</SelectItem>
                       <SelectItem value="8">Grade 8</SelectItem>
@@ -254,7 +264,6 @@ const Register = () => {
                       <SelectItem value="12">Grade 12</SelectItem>
                     </SelectContent>
                   </Select>
-                  </div>
                   {errors.grade && (
                     <p className="text-red-300 text-xs sm:text-sm mt-1">
                       {errors.grade.message}
@@ -262,16 +271,15 @@ const Register = () => {
                   )}
                 </div>
 
-
                 {/* Allergies */}
-                <div className="space-y-1.5 sm:space-y-2 col-span-1 sm:col-span-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="allergies" className="text-white text-sm sm:text-base">
                     Allergies or Special Requirements (if any)
                   </Label>
                   <Textarea
                     id="allergies"
                     placeholder="List any allergies, dietary restrictions, or special requirements..."
-                    className="min-h-[100px] text-base bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500"
+                    className="min-h-[100px] text-base bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 w-full"
                     {...register("allergies")}
                   />
                   <p className="text-white/60 text-xs sm:text-sm">
@@ -279,8 +287,8 @@ const Register = () => {
                   </p>
                 </div>
 
-                {/* Submit Button - Moved to top */}
-                <div className="col-span-1 sm:col-span-2 mb-6">
+                {/* Submit Button */}
+                <div className="pt-2">
                   <Button
                     type="submit"
                     className="w-full py-5 sm:py-6 text-lg sm:text-xl bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-white font-bold"
