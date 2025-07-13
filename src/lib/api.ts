@@ -20,6 +20,7 @@ export interface RegistrationFormData {
   parentName: string;
   emergencyContact: string;
   grade: string;
+  hobbies?: string;
   allergies?: string;
 }
 

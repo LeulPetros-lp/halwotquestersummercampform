@@ -27,6 +27,7 @@ const registrationSchema = z.object({
     .length(8, "Phone number must be 8 digits")
     .regex(/^\d+$/, "Phone number must contain only digits"),
   grade: z.string().min(1, "Please select a grade"),
+  hobbies: z.string().min(1, "Please tell us about your hobbies"),
   allergies: z.string().optional(),
 });
 
@@ -80,6 +81,7 @@ const Register = () => {
         parentName: data.parentName,
         emergencyContact: phoneNumber,
         grade: data.grade,
+        hobbies: data.hobbies,
         allergies: data.allergies || undefined,
       };
 
@@ -148,6 +150,14 @@ const Register = () => {
               <CardDescription className="text-white/80 text-base sm:text-lg mt-2">
                 Fill out the form below to secure your spot
               </CardDescription>
+              <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                <p className="text-yellow-800 font-medium">
+                  Registration Fee: <span className="font-bold">1000 ETB</span>
+                </p>
+                <p className="text-yellow-700 text-sm mt-1">
+                  Includes 5 days of lunch and water
+                </p>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
@@ -255,26 +265,44 @@ const Register = () => {
 
               {/* Grade Section */}
               <div className="w-full max-w-4xl mx-auto space-y-6">
-                <div className="space-y-1.5 sm:space-y-2">
+                <div className="space-y-1.5 sm:space-y-2 w-full">
                   <Label htmlFor="grade" className="text-white text-sm sm:text-base">
                     Grade <span className="text-red-500">*</span>
                   </Label>
                   <Select onValueChange={(value) => setValue("grade", value)}>
-                    <SelectTrigger className="w-full h-11 sm:h-12 bg-white/90 focus:ring-2 focus:ring-orange-500 border-white/30 text-base">
+                    <SelectTrigger className="w-full h-11 sm:h-12 bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 text-base">
                       <SelectValue placeholder="Select grade" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white text-base">
-                      <SelectItem value="7">Grade 7</SelectItem>
-                      <SelectItem value="8">Grade 8</SelectItem>
+                    <SelectContent>
                       <SelectItem value="9">Grade 9</SelectItem>
                       <SelectItem value="10">Grade 10</SelectItem>
                       <SelectItem value="11">Grade 11</SelectItem>
                       <SelectItem value="12">Grade 12</SelectItem>
+                      <SelectItem value="college">College/University</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.grade && (
                     <p className="text-red-300 text-xs sm:text-sm mt-1">
                       {errors.grade.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Hobbies */}
+                <div className="space-y-1.5 sm:space-y-2 w-full sm:col-span-2">
+                  <Label htmlFor="hobbies" className="text-white text-sm sm:text-base">
+                    Hobbies & Interests <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="hobbies"
+                    placeholder="Tell us about your hobbies and interests..."
+                    className="w-full min-h-[100px] bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 text-base"
+                    {...register("hobbies")}
+                  />
+                  {errors.hobbies && (
+                    <p className="text-red-300 text-xs sm:text-sm mt-1">
+                      {errors.hobbies.message}
                     </p>
                   )}
                 </div>
