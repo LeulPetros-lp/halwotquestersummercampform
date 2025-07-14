@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { transitionImages } from "@/utils/transitionImages";
-import { Camera } from "lucide-react";
+import { Camera, Plus, X } from "lucide-react";
 import { submitRegistration, checkIfRegistered, RegistrationFormData } from "@/lib/api";
 
 const registrationSchema = z.object({
@@ -40,6 +40,12 @@ const Register = () => {
   const { toast } = useToast();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAgeFocused, setIsAgeFocused] = useState(false);
+  const hobbies = [
+    'Reading', 'Sports', 'Music', 'Dancing', 'Drawing',
+    'Swimming', 'Cooking', 'Photography', 'Gaming', 'Hiking',
+    'Other'
+  ];
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -55,9 +61,25 @@ const Register = () => {
     setValue,
     formState: { errors, isSubmitting },
     reset,
+    watch,
   } = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      fullName: "",
+      age: "",
+      gender: "",
+      parentName: "",
+      emergencyContact: "",
+      grade: "",
+      hobbies: "",
+      allergies: "",
+      isChurchMember: false,
+    },
   });
+  
+  const handleHobbySelect = (value: string) => {
+    setValue("hobbies", value, { shouldValidate: true });
+  };
 
   const onSubmit = async (data: RegistrationForm) => {
     try {
@@ -313,21 +335,35 @@ const Register = () => {
                   <Label htmlFor="hobbies" className="text-white text-sm sm:text-base">
                     Hobbies & Interests <span className="text-red-500">*</span>
                   </Label>
-                  <Textarea
-                    id="hobbies"
-                    placeholder="Tell us about your hobbies and interests..."
-                    className="w-full min-h-[100px] bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 text-base"
-                    {...register("hobbies")}
-                  />
+                  
+                  <div className="space-y-2">
+                    <Select 
+                      onValueChange={handleHobbySelect}
+                      value={watch("hobbies") || ""}
+                    >
+                      <SelectTrigger className="w-full h-11 sm:h-12 bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 text-base">
+                        <SelectValue placeholder="Select a hobby" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hobbies.map((hobby) => (
+                          <SelectItem key={hobby} value={hobby}>
+                            {hobby}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
                   {errors.hobbies && (
                     <p className="text-red-300 text-xs sm:text-sm mt-1">
                       {errors.hobbies.message}
                     </p>
                   )}
                 </div>
+                </div>
 
                 {/* Allergies */}
-                <div className="space-y-1.5 sm:space-y-2">
+                <div className="space-y-1.5 sm:space-y-2 w-full sm:col-span-2">
                   <Label htmlFor="allergies" className="text-white text-sm sm:text-base">
                     Allergies or Special Requirements (if any)
                   </Label>
@@ -356,36 +392,34 @@ const Register = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-2">
+                <div className="pt-4">
                   <Button
                     type="submit"
-                    className="w-full py-5 sm:py-6 text-lg sm:text-xl bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-white font-bold"
                     disabled={isSubmitting}
+                    className="w-full h-12 sm:h-14 bg-orange-500 hover:bg-orange-600 text-white text-base sm:text-lg font-semibold transition-colors duration-200"
                   >
-                    {isSubmitting ? (
-                      <div className="flex items-center justify-center space-x-3">
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-base sm:text-lg">Submitting...</span>
-                      </div>
-                    ) : (
-                      'SUBMIT REGISTRATION'
-                    )}
+                    {isSubmitting ? 'Submitting...' : 'Register Now'}
                   </Button>
                 </div>
 
-                {/* Payment Information */}
-                <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                  <p className="text-yellow-800 font-medium">
-                    Registration Fee: <span className="font-bold">1000 ETB</span>
-                  </p>
-                  <p className="text-yellow-700 text-sm mt-1">
-                    Includes 5 days of lunch and water
-                  </p>
+                {/* Payment Notice */}
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-yellow-700">
+<strong>Payment required:</strong> 1000 ETB for 5 days (food and water included)
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
       
