@@ -22,6 +22,7 @@ export interface RegistrationFormData {
   grade: string;
   hobbies?: string;
   allergies?: string;
+  isChurchMember: boolean;
 }
 
 export const submitRegistration = async (data: RegistrationFormData) => {
@@ -32,7 +33,9 @@ export const submitRegistration = async (data: RegistrationFormData) => {
       parentName: data.parentName,
       emergencyContact: data.emergencyContact,
       grade: data.grade,
+      hobbies: data.hobbies || null,
       allergies: data.allergies || null,
+      isChurchMember: data.isChurchMember,
       createdAt: new Date().toISOString()
     });
     

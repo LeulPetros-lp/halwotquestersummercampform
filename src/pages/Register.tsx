@@ -13,7 +13,7 @@ import * as z from "zod";
 import { useState, useEffect } from "react";
 import { transitionImages } from "@/utils/transitionImages";
 import { Camera } from "lucide-react";
-import { submitRegistration, checkIfRegistered } from "@/lib/api";
+import { submitRegistration, checkIfRegistered, RegistrationFormData } from "@/lib/api";
 
 const registrationSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -29,6 +29,7 @@ const registrationSchema = z.object({
   grade: z.string().min(1, "Please select a grade"),
   hobbies: z.string().min(1, "Please tell us about your hobbies"),
   allergies: z.string().optional(),
+  isChurchMember: z.boolean().default(false),
 });
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
@@ -75,14 +76,15 @@ const Register = () => {
       }
 
       // Prepare form data with correct types
-      const formData = {
+            const formData: Omit<RegistrationFormData, 'emergencyContact'> & { emergencyContact: string } = {
         fullName: data.fullName,
         age: parseInt(data.age),
         parentName: data.parentName,
         emergencyContact: phoneNumber,
         grade: data.grade,
         hobbies: data.hobbies,
-        allergies: data.allergies || undefined,
+        allergies: data.allergies,
+        isChurchMember: data.isChurchMember || false,
       };
 
       // Submit registration
