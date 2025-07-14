@@ -13,7 +13,7 @@ import * as z from "zod";
 import { useState, useEffect } from "react";
 import { transitionImages } from "@/utils/transitionImages";
 import { Camera } from "lucide-react";
-import { submitRegistration, checkIfRegistered } from "@/lib/api";
+import { submitRegistration, checkIfRegistered, RegistrationFormData } from "@/lib/api";
 
 const registrationSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -29,6 +29,7 @@ const registrationSchema = z.object({
   grade: z.string().min(1, "Please select a grade"),
   hobbies: z.string().min(1, "Please tell us about your hobbies"),
   allergies: z.string().optional(),
+  isChurchMember: z.boolean().default(false),
 });
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
@@ -75,14 +76,15 @@ const Register = () => {
       }
 
       // Prepare form data with correct types
-      const formData = {
+            const formData: Omit<RegistrationFormData, 'emergencyContact'> & { emergencyContact: string } = {
         fullName: data.fullName,
         age: parseInt(data.age),
         parentName: data.parentName,
         emergencyContact: phoneNumber,
         grade: data.grade,
         hobbies: data.hobbies,
-        allergies: data.allergies || undefined,
+        allergies: data.allergies,
+        isChurchMember: data.isChurchMember || false,
       };
 
       // Submit registration
@@ -150,14 +152,6 @@ const Register = () => {
               <CardDescription className="text-white/80 text-base sm:text-lg mt-2">
                 Fill out the form below to secure your spot
               </CardDescription>
-              <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                <p className="text-yellow-800 font-medium">
-                  Registration Fee: <span className="font-bold">1000 ETB</span>
-                </p>
-                <p className="text-yellow-700 text-sm mt-1">
-                  Includes 5 days of lunch and water
-                </p>
-              </div>
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
@@ -323,6 +317,19 @@ const Register = () => {
                   </p>
                 </div>
 
+                {/* Church Member Checkbox */}
+                <div className="flex items-center space-x-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="isChurchMember"
+                    {...register("isChurchMember")}
+                    className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                  />
+                  <label htmlFor="isChurchMember" className="text-sm sm:text-base text-white">
+                    I am a member of the church
+                  </label>
+                </div>
+
                 {/* Submit Button */}
                 <div className="pt-2">
                   <Button
@@ -339,6 +346,16 @@ const Register = () => {
                       'SUBMIT REGISTRATION'
                     )}
                   </Button>
+                </div>
+
+                {/* Payment Information */}
+                <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                  <p className="text-yellow-800 font-medium">
+                    Registration Fee: <span className="font-bold">1000 ETB</span>
+                  </p>
+                  <p className="text-yellow-700 text-sm mt-1">
+                    Includes 5 days of lunch and water
+                  </p>
                 </div>
               </div>
             </form>
