@@ -85,16 +85,8 @@ const Register = () => {
         allergies: data.allergies || undefined,
       };
 
-      // Submit registration
-      const result = await submitRegistration(formData);
-      
-      if (result.success) {
-        reset();
-        // Navigate to thank you page after successful submission
-        navigate('/thank-you', { state: { formData } });
-      } else {
-        throw new Error(result.error || 'Failed to submit registration');
-      }
+      // Navigate to payment page with form data
+      navigate('/payment', { state: { formData } });
     } catch (error) {
       console.error('Registration error:', error);
       toast({
