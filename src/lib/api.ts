@@ -17,6 +17,7 @@ const db = getFirestore(app);
 export interface RegistrationFormData {
   fullName: string;
   age: number;
+  gender: string;
   parentName: string;
   emergencyContact: string;
   grade: string;
@@ -30,6 +31,7 @@ export const submitRegistration = async (data: RegistrationFormData) => {
     const docRef = await addDoc(collection(db, 'registrations'), {
       fullName: data.fullName,
       age: data.age,
+      gender: data.gender,
       parentName: data.parentName,
       emergencyContact: data.emergencyContact,
       grade: data.grade,

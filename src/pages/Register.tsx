@@ -22,6 +22,7 @@ const registrationSchema = z.object({
     .refine((val) => parseInt(val) >= 13, {
       message: "You must be at least 13 years old to register",
     }),
+  gender: z.string().min(1, "Please select a gender"),
   parentName: z.string().min(2, "Parent/Guardian name is required"),
   emergencyContact: z.string()
     .length(8, "Phone number must be 8 digits")
@@ -76,9 +77,10 @@ const Register = () => {
       }
 
       // Prepare form data with correct types
-            const formData: Omit<RegistrationFormData, 'emergencyContact'> & { emergencyContact: string } = {
+      const formData: Omit<RegistrationFormData, 'emergencyContact'> & { emergencyContact: string } = {
         fullName: data.fullName,
         age: parseInt(data.age),
+        gender: data.gender,
         parentName: data.parentName,
         emergencyContact: phoneNumber,
         grade: data.grade,
@@ -281,6 +283,27 @@ const Register = () => {
                   {errors.grade && (
                     <p className="text-red-300 text-xs sm:text-sm mt-1">
                       {errors.grade.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Gender Field */}
+                <div className="space-y-1.5 sm:space-y-2 w-full">
+                  <Label htmlFor="gender" className="text-white text-sm sm:text-base">
+                    Gender <span className="text-red-500">*</span>
+                  </Label>
+                  <Select onValueChange={(value) => setValue("gender", value)}>
+                    <SelectTrigger className="w-full h-11 sm:h-12 bg-white/90 focus:bg-white border-white/30 focus:ring-2 focus:ring-orange-500 text-base">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.gender && (
+                    <p className="text-red-300 text-xs sm:text-sm mt-1">
+                      {errors.gender.message}
                     </p>
                   )}
                 </div>
