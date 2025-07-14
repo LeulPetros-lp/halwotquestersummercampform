@@ -24,6 +24,10 @@ export default {
 				sans: ['Quicksand', ...defaultTheme.fontFamily.sans],
 			},
 			colors: {
+				orange: {
+					500: '#f26923',
+					600: '#d85a1c',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
