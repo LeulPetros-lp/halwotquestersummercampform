@@ -412,7 +412,7 @@ const Register = () => {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm text-yellow-700">
-<strong>Payment required:</strong> 1000 ETB for 5 days (food and water included), <br></br><br></br> Please Send the screenshot or pdf receipt to +251 966 214 479 on telegram, 
+<strong>Payment required:</strong> 1000 ETB for 6 days (food and water included), <br></br><br></br> Please Send the screenshot or pdf receipt to +251 966 214 479 on telegram, 
                       </p>
                     </div>
                   </div>
