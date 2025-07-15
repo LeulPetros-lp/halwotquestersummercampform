@@ -43,10 +43,10 @@ const Footer = () => {
                 <div>
                   <h3 className="font-semibold text-lg">Call Us</h3>
                   <p className="text-orange-100">
-                    <a href="tel:+251934815617" className="hover:underline">+251 934 815 617</a>
+                    <a href="telx:+251934815617" className="hover:underline">+251 934 815 617</a>
                   </p>
                   <p className="text-orange-100">
-                    <a href="tel:++251 903 412 222" className="hover:underline">+251 903 412 222</a>
+                    <a href="tel:+251 966 214 479" className="hover:underline">+251 966 214 479</a>
                   </p>
                 </div>
               </div>

@@ -41,7 +41,7 @@ const Register = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAgeFocused, setIsAgeFocused] = useState(false);
   const hobbies = [
-    'Reading', 'Sports', 'Music', 'Dancing', 'Drawing',
+    'Reading', 'Sports', 'Singing', 'Drawing',
     'Swimming', 'Cooking', 'Photography', 'Gaming', 'Hiking',
     'Other'
   ];
@@ -412,7 +412,7 @@ const Register = () => {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm text-yellow-700">
-<strong>Payment required:</strong> 1000 ETB for 5 days (food and water included)
+<strong>Payment required:</strong> 1000 ETB for 5 days (food and water included), <br></br>Send the screenshot or pdf receipt to +251 966 214 479 on telegram, Thank you !
                       </p>
                     </div>
                   </div>
