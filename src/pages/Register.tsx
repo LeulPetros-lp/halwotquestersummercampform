@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +11,9 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { transitionImages } from "@/utils/transitionImages";
-import { Camera, Plus, X } from "lucide-react";
-import { submitRegistration, checkIfRegistered, RegistrationFormData } from "@/lib/api";
+import { Camera, Plus, X, Upload, Loader2 } from "lucide-react";
+import { submitRegistration, RegistrationFormData, uploadReceipt } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 const registrationSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
@@ -31,6 +31,8 @@ const registrationSchema = z.object({
   hobbies: z.string().min(1, "Please tell us about your hobbies"),
   allergies: z.string().optional(),
   isChurchMember: z.boolean().default(false),
+  receipt: z.any().optional()
+    .refine((file) => !file || file.size <= 5 * 1024 * 1024, 'File size must be less than 5MB')
 });
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
@@ -38,8 +40,10 @@ type RegistrationForm = z.infer<typeof registrationSchema>;
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAgeFocused, setIsAgeFocused] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const hobbies = [
     'Reading', 'Sports', 'Singing', 'Drawing',
     'Swimming', 'Cooking', 'Photography', 'Gaming', 'Hiking',
@@ -58,9 +62,11 @@ const Register = () => {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
+    setValue,
     reset,
+    setError,
+    clearErrors,
     watch,
   } = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
@@ -81,45 +87,94 @@ const Register = () => {
     setValue("hobbies", value, { shouldValidate: true });
   };
 
-  const onSubmit = async (data: RegistrationForm) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      if (!validTypes.includes(file.type)) {
+        setError('receipt', {
+          type: 'manual',
+          message: 'Only JPG, JPEG, and PNG files are allowed',
+        });
+        return;
+      }
+      
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        setError('receipt', {
+          type: 'manual',
+          message: 'File size must be less than 5MB',
+        });
+        return;
+      }
+      
+      setReceiptFile(file);
+      setValue('receipt', file);
+      clearErrors('receipt');
+    }
+  };
+
+  const onSubmit = async (formData: RegistrationForm) => {
     try {
-      // Add '09' prefix to phone number
-      const phoneNumber = '09' + data.emergencyContact;
-      
-      // Check if already registered
-      const { exists } = await checkIfRegistered(data.fullName, data.parentName);
-      
-      if (exists) {
+      if (!receiptFile) {
         toast({
           variant: "destructive",
-          title: "Already Registered",
-          description: "A registration with this name and parent/guardian already exists.",
+          title: "Receipt Required",
+          description: "Please upload a receipt before submitting.",
         });
         return;
       }
 
-      // Prepare form data with correct types
-      const formData: Omit<RegistrationFormData, 'emergencyContact'> & { emergencyContact: string } = {
-        fullName: data.fullName,
-        age: parseInt(data.age),
-        gender: data.gender,
-        parentName: data.parentName,
-        emergencyContact: phoneNumber,
-        grade: data.grade,
-        hobbies: data.hobbies,
-        allergies: data.allergies,
-        isChurchMember: data.isChurchMember || false,
-      };
-
-      // Submit registration
-      const result = await submitRegistration(formData);
+      setIsUploading(true);
       
-      if (result.success) {
-        reset();
-        // Navigate to thank you page after successful submission
-        navigate('/thank-you', { state: { formData } });
-      } else {
-        throw new Error(result.error || 'Failed to submit registration');
+      // Add '09' prefix to phone number
+      const phoneNumber = '09' + formData.emergencyContact;
+      let receiptUrl = '';
+
+      try {
+        // Upload receipt to ImgBB
+        const receiptData = await uploadReceipt(receiptFile);
+        receiptUrl = receiptData.url;
+        
+        // Prepare form data with correct types
+        const registrationData: RegistrationFormData = {
+          fullName: formData.fullName,
+          age: parseInt(formData.age),
+          gender: formData.gender,
+          parentName: formData.parentName,
+          phone: phoneNumber,
+          emergencyContact: phoneNumber,
+          grade: formData.grade,
+          hobbies: formData.hobbies,
+          allergies: formData.allergies,
+          isChurchMember: formData.isChurchMember || false,
+          receiptUrl: receiptUrl,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        // Submit registration with receipt
+        const result = await submitRegistration(registrationData);
+        
+        if (result.success) {
+          reset();
+          setReceiptFile(null);
+          // Navigate to thank you page after successful registration
+          navigate('/thank-you', { 
+            state: { 
+              registrationId: result.id,
+              formData: registrationData
+            } 
+          });
+        } else {
+          throw new Error(result.error || 'Failed to submit registration');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        throw new Error('Failed to upload receipt. Please try again.');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -128,6 +183,8 @@ const Register = () => {
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to submit registration. Please try again.",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -182,6 +239,11 @@ const Register = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
               {/* Input Fields Grid */}
               <div className="w-full max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {/* Allergies */}
+        
+
+
+
                 {/* Full Name */}
                 <div className="space-y-1.5 sm:space-y-2 w-full">
                   <Label htmlFor="fullName" className="text-white text-sm sm:text-base">
@@ -378,6 +440,61 @@ const Register = () => {
                   </p>
                 </div>
 
+                {/* Receipt Upload */}
+                <div className="space-y-1.5 sm:space-y-2 w-full pt-4">
+                  <Label htmlFor="receipt" className="text-white text-sm sm:text-base block">
+                    Upload Payment Receipt <span className="text-red-500">*</span>
+                  </Label>
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
+                      errors.receipt 
+                        ? 'border-red-500 bg-red-500/10' 
+                        : 'border-white/30 hover:border-orange-400'
+                    }`}
+                    onClick={() => document.getElementById('receipt')?.click()}
+                  >
+                    <Input
+                      id="receipt"
+                      type="file"
+                      accept="image/jpeg, image/png, image/jpg"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <Upload className="h-8 w-8 text-white/70" />
+                      <p className="text-white/80 text-sm">
+                        {receiptFile 
+                          ? `Selected: ${receiptFile.name} (${(receiptFile.size / 1024).toFixed(2)} KB)`
+                          : 'Click to upload or drag and drop'}
+                      </p>
+                      <p className="text-white/60 text-xs">
+                        PNG, JPG, or JPEG (max 5MB)
+                      </p>
+                    </div>
+                  </div>
+                  {errors.receipt && (
+                    <p className="text-red-300 text-xs sm:text-sm mt-1">
+                      {errors.receipt.message?.toString()}
+                    </p>
+                  )}
+                </div>
+
+                {/* Payment Notice */}
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-yellow-700">
+                        <strong>Payment required:</strong> 1000 ETB for 6 days (food and water included), <br></br>please upload the screenshot or pdf receipt on the field found above, 
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Church Member Checkbox */}
                 <div className="flex items-center space-x-2 pt-2">
                   <input
@@ -393,29 +510,20 @@ const Register = () => {
 
                 {/* Submit Button */}
                 <div className="pt-4">
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full h-12 sm:h-14 bg-orange-500 hover:bg-orange-600 text-white text-base sm:text-lg font-semibold transition-colors duration-200"
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 sm:h-14 bg-orange-500 hover:bg-orange-600 text-white font-medium text-base sm:text-lg transition-colors mt-4"
+                    disabled={isSubmitting || isUploading}
                   >
-                    {isSubmitting ? 'Submitting...' : 'Register Now'}
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Submit Registration'
+                    )}
                   </Button>
-                </div>
-
-                {/* Payment Notice */}
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-yellow-700">
-<strong>Payment required:</strong> 1000 ETB for 6 days (food and water included), <br></br><br></br> Please Send the screenshot or pdf receipt to +251 966 214 479 on telegram, 
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </form>
             </CardContent>

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Register from "./pages/Register";
+import ConfirmPayment from "./pages/ConfirmPayment";
 import Gallery from "./pages/Gallery";
 import ThankYou from "./pages/ThankYou";
 import NotFound from "./pages/NotFound";
@@ -24,8 +25,9 @@ const App = () => (
           */}
           <Route path="/" element={<Register />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/confirm-payment" element={<ConfirmPayment />} />
           <Route path="/gallery" element={<Gallery />} />
-          <Route path="/thank-you" element={<ThankYou />} />
+          <Route path="/thank-you" element={<ThankYou /> } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

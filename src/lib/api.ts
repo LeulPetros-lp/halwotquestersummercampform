@@ -1,5 +1,6 @@
+// src/lib/api.ts
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBav7I8SqGTMSsB_Ly5kcISE_2lO--SNyU",
@@ -12,60 +13,85 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const db = getFirestore(app);
 
 export interface RegistrationFormData {
   fullName: string;
   age: number;
   gender: string;
   parentName: string;
+  phone: string;
   emergencyContact: string;
   grade: string;
   hobbies?: string;
   allergies?: string;
   isChurchMember: boolean;
+  receiptUrl?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+export interface ReceiptData {
+  url: string;
+  fileName: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+const IMGBB_API_KEY = 'b0a1a6e53ee71951d772568e68407226';
+
+export const uploadReceipt = async (file: File): Promise<ReceiptData> => {
+  const formData = new FormData();
+  formData.append('image', file);
+  
+  const response = await fetch(
+    `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to upload image');
+  }
+
+  const data = await response.json();
+  
+  return {
+    url: data.data.url,
+    fileName: file.name,
+    fileSize: file.size,
+    uploadedAt: new Date().toISOString()
+  };
+};
 
 export const submitRegistration = async (data: RegistrationFormData) => {
   try {
     const docRef = await addDoc(collection(db, 'registrations'), {
-      fullName: data.fullName,
-      age: data.age,
-      gender: data.gender,
-      parentName: data.parentName,
-      emergencyContact: data.emergencyContact,
-      grade: data.grade,
-      hobbies: data.hobbies || null,
-      allergies: data.allergies || null,
-      isChurchMember: data.isChurchMember || false,
-      createdAt: new Date().toISOString()
+      ...data,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
-    
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error('Error adding document: ', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to submit registration' 
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
 
-export const checkIfRegistered = async (fullName: string, parentName: string): Promise<{ exists: boolean; error?: Error }> => {
+export const updateRegistrationWithReceipt = async (registrationId: string, receiptData: ReceiptData) => {
   try {
-    const q = query(
-      collection(db, 'registrations'),
-      where('fullName', '==', fullName),
-      where('parentName', '==', parentName)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return { exists: !querySnapshot.empty };
+    await updateDoc(doc(db, 'registrations', registrationId), {
+      receiptUrl: receiptData.url,
+      status: 'payment_received',
+      updatedAt: new Date().toISOString(),
+    });
+    return { success: true };
   } catch (error) {
-    console.error('Error checking registration:', error);
-    return { 
-      exists: false, 
-      error: error instanceof Error ? error : new Error('Error checking registration')
-    };
+    console.error('Error updating document: ', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
