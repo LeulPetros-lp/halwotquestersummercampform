@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyBav7I8SqGTMSsB_Ly5kcISE_2lO--SNyU",
   authDomain: "oplms-6defb.firebaseapp.com",
@@ -37,11 +38,18 @@ export interface ReceiptData {
   fileName: string;
   fileSize: number;
   uploadedAt: string;
+  extractedText?: string;
+  previewText?: string;
 }
 
 const IMGBB_API_KEY = 'b0a1a6e53ee71951d772568e68407226';
 
+/**
+ * Upload file to ImgBB with filename validation
+ */
 export const uploadReceipt = async (file: File): Promise<ReceiptData> => {
+
+  // Upload to ImgBB
   const formData = new FormData();
   formData.append('image', file);
   
@@ -54,7 +62,7 @@ export const uploadReceipt = async (file: File): Promise<ReceiptData> => {
   );
 
   if (!response.ok) {
-    throw new Error('Failed to upload image');
+    throw new Error('Failed to upload file to ImgBB');
   }
 
   const data = await response.json();

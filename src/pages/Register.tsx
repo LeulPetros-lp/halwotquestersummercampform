@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { transitionImages } from "@/utils/transitionImages";
-import { Camera, Plus, X, Upload, Loader2 } from "lucide-react";
+import { Camera, Plus, X, Upload, Loader2, Check, FileText } from "lucide-react";
 import { submitRegistration, RegistrationFormData, uploadReceipt } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -42,8 +42,11 @@ const Register = () => {
   const { toast } = useToast();
   const [isAgeFocused, setIsAgeFocused] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isPaymentUploaded, setIsPaymentUploaded] = useState(false);
   const hobbies = [
     'Reading', 'Sports', 'Singing', 'Drawing',
     'Swimming', 'Cooking', 'Photography', 'Gaming', 'Hiking',
@@ -87,32 +90,58 @@ const Register = () => {
     setValue("hobbies", value, { shouldValidate: true });
   };
 
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-      if (!validTypes.includes(file.type)) {
-        setError('receipt', {
-          type: 'manual',
-          message: 'Only JPG, JPEG, and PNG files are allowed',
-        });
-        return;
-      }
-      
-      // Validate file size (5MB max)
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (file.size > maxSize) {
-        setError('receipt', {
-          type: 'manual',
-          message: 'File size must be less than 5MB',
-        });
-        return;
-      }
-      
+    if (!file) return;
+    handleFileUpload(file);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    // Reset previous state
+    setReceiptFile(null);
+    setUploadError(null);
+    clearErrors('receipt');
+    setError('receipt', { type: 'manual', message: '' });
+    
+    // Check if file is a PDF or image and has 'telebirr' in the name
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Invalid file type. Please upload a PDF or image file.');
+      setIsPaymentUploaded(false);
+      return;
+    }
+    
+    if (!file.name.toLowerCase().includes('telebirr')) {
+      setUploadError('Invalid receipt. Please upload the correct payment receipt.');
+      setIsPaymentUploaded(false);
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Upload the file to ImgBB
+      const receiptData = await uploadReceipt(file);
       setReceiptFile(file);
-      setValue('receipt', file);
-      clearErrors('receipt');
+      setValue('receipt', file, { shouldValidate: true });
+      setUploadError(null);
+      setIsPaymentUploaded(true);
+    } catch (err: any) {
+      console.error('Error uploading file:', err);
+      setUploadError(err.message || 'Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -440,37 +469,87 @@ const Register = () => {
                   </p>
                 </div>
 
-                {/* Receipt Upload */}
-                <div className="space-y-1.5 sm:space-y-2 w-full pt-4">
-                  <Label htmlFor="receipt" className="text-white text-sm sm:text-base block">
-                    Upload Payment Receipt <span className="text-red-500">*</span>
+                {/* File Upload */}
+                <div className="space-y-1.5 sm:space-y-2 w-full sm:col-span-2 pt-4">
+                  <Label htmlFor="receipt" className="text-white text-sm sm:text-base">
+                    Upload Payment Receipt (PDF) <span className="text-red-500">*</span>
                   </Label>
-                  <div 
-                    className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
-                      errors.receipt 
-                        ? 'border-red-500 bg-red-500/10' 
-                        : 'border-white/30 hover:border-orange-400'
-                    }`}
-                    onClick={() => document.getElementById('receipt')?.click()}
-                  >
-                    <Input
-                      id="receipt"
-                      type="file"
-                      accept="image/jpeg, image/png, image/jpg"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <Upload className="h-8 w-8 text-white/70" />
-                      <p className="text-white/80 text-sm">
-                        {receiptFile 
-                          ? `Selected: ${receiptFile.name} (${(receiptFile.size / 1024).toFixed(2)} KB)`
-                          : 'Click to upload or drag and drop'}
-                      </p>
-                      <p className="text-white/60 text-xs">
-                        PNG, JPG, or JPEG (max 5MB)
-                      </p>
-                    </div>
+                  <div className="flex items-center justify-center w-full">
+                    <label
+                      htmlFor="dropzone-file"
+                      className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                        errors.receipt 
+                          ? 'border-red-500 bg-red-500/10' 
+                          : receiptFile
+                            ? 'border-green-500 bg-green-500/10' 
+                            : 'border-gray-300 bg-white/90 hover:border-orange-400 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-orange-400'
+                      }`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActive(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActive(false);
+                      }}
+                      onDrop={handleDrop}
+                    >
+
+                      {isUploading ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent rounded-lg">
+                          <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
+                          <p className="text-sm font-medium text-white">
+                            Uploading...
+                          </p>
+                        </div>
+                      ) : uploadError ? (
+                        <div className="flex flex-col items-center justify-center p-4 text-center">
+                          <X className="w-8 h-8 text-red-500 mb-2" />
+                          <p className="text-sm font-medium text-red-500">
+                            {uploadError || 'Invalid receipt'}
+                          </p>
+                          <p className="text-xs text-red-400 mt-1">
+                            Please upload a valid payment receipt
+                          </p>
+                        </div>
+                      ) : receiptFile ? (
+                        <div className="flex flex-col items-center p-4">
+                          <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full mb-2">
+                            <Check className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <p className="text-sm text-white text-center">
+                              {receiptFile.name}
+                            </p>
+                            {!receiptFile.name.toLowerCase().includes('telebirr') && (
+                              <span className="text-yellow-300 text-xs mt-1">
+                                Not identified as Telebirr receipt
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                          <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            PDF only (MAX. 5MB)
+                          </p>
+                        </div>
+                      )}
+                      <input
+                        id="dropzone-file"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,application/pdf"
+                        onChange={handleFileChange}
+                        disabled={isUploading}
+                      />
+                    </label>
                   </div>
                   {errors.receipt && (
                     <p className="text-red-300 text-xs sm:text-sm mt-1">
@@ -480,16 +559,47 @@ const Register = () => {
                 </div>
 
                 {/* Payment Notice */}
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                <div className={`border-l-4 p-4 rounded-md ${
+                  isPaymentUploaded 
+                    ? 'bg-green-50 border-green-400' 
+                    : uploadError 
+                      ? 'bg-red-50 border-red-400' 
+                      : 'bg-yellow-50 border-yellow-400'
+                }`}>
                   <div className="flex">
                     <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
+                      {uploadError ? (
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      ) : isPaymentUploaded ? (
+                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm text-yellow-700">
-                        <strong>Payment required:</strong> 1000 ETB for 6 days (food and water included), <br></br>please upload the screenshot or pdf receipt on the field found above, 
+                      <p className={`text-sm ${
+                        isPaymentUploaded ? 'text-green-700' : 'text-yellow-700'
+                      }`}>
+                        {isPaymentUploaded ? (
+                          <>
+                            <strong>Payment submitted for review</strong> - Thank you for your payment of 1000 ETB for the 6-day camp (food and water included). Our team will verify your payment shortly.
+                          </>
+                        ) : (
+                          <>
+                            <strong>Payment required:</strong> Please upload your payment receipt (1000 ETB for 6 days, food and water included).
+                            {uploadError && (
+                              <span className="block mt-1 text-red-600 font-medium">
+                                {uploadError}
+                              </span>
+                            )}
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
