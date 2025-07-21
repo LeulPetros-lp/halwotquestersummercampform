@@ -114,7 +114,7 @@ const Register = () => {
     clearErrors('receipt');
     setError('receipt', { type: 'manual', message: '' });
     
-    // Check if file is a PDF or image and has 'telebirr' in the name
+    // Check if file is a PDF or image and has 'telebirr' or 'cbe' in the name
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
       setUploadError('Invalid file type. Please upload a PDF or image file.');
@@ -122,8 +122,9 @@ const Register = () => {
       return;
     }
     
-    if (!file.name.toLowerCase().includes('telebirr')) {
-      setUploadError('Invalid receipt. Please upload the correct payment receipt.');
+    const fileName = file.name.toLowerCase();
+    if (!(fileName.includes('telebirr') || fileName.includes('cbe'))) {
+      setUploadError('Invalid receipt. Please upload a valid Telebirr or CBE payment receipt.');
       setIsPaymentUploaded(false);
       return;
     }
@@ -566,41 +567,95 @@ const Register = () => {
                       ? 'bg-red-50 border-red-400' 
                       : 'bg-yellow-50 border-yellow-400'
                 }`}>
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      {uploadError ? (
-                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      ) : isPaymentUploaded ? (
-                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="ml-3">
-                      <p className={`text-sm ${
-                        isPaymentUploaded ? 'text-green-700' : 'text-yellow-700'
-                      }`}>
-                        {isPaymentUploaded ? (
-                          <>
-                            <strong>Payment submitted for review</strong> - Thank you for your payment of 1000 ETB for the 6-day camp (food and water included). Our team will verify your payment shortly.
-                          </>
+                  <div className="space-y-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        {uploadError ? (
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        ) : isPaymentUploaded ? (
+                          <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
                         ) : (
-                          <>
-                            <strong>Payment required:</strong> Please upload your payment receipt (1000 ETB for 6 days, food and water included).
-                            {uploadError && (
-                              <span className="block mt-1 text-red-600 font-medium">
-                                {uploadError}
-                              </span>
-                            )}
-                          </>
+                          <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
                         )}
-                      </p>
+                      </div>
+                      <div className="ml-3">
+                        <p className={`text-sm ${
+                          isPaymentUploaded ? 'text-green-700' : 'text-yellow-700'
+                        }`}>
+                          {isPaymentUploaded ? (
+                            <>
+                              <strong>Summer Camp Payment Submitted</strong> - Thank you for your payment of 1000 ETB for the 6-day summer camp (food and water included). Our team will verify your payment shortly.
+                            </>
+                          ) : (
+                            <>
+                              <strong>Summer Camp Payment Required:</strong> Please complete your registration by making a payment of 1000 ETB for the 6-day summer camp (food and water included) using one of the methods below and upload your receipt.
+                              {uploadError && (
+                                <span className="block mt-1 text-red-600 font-medium">
+                                  {uploadError}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </p>
+                    </div>
+                    </div>
+
+                    {/* Payment Methods */}
+                    <div className="mt-4">
+                      {/* Telebirr Payment - Full Width */}
+                      <div className="border rounded-lg p-4 bg-white/50 w-full">
+                        <h4 className="font-bold text-orange-600 mb-2">Summer Camp - Telebirr Payment</h4>
+                        <div className="space-y-2 text-sm">
+                          <p className="font-medium">Send payment to:</p>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold">Name:</span>
+                            <span>Halwot Questers</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold">Phone:</span>
+                            <div className="space-y-1">
+                              <a href="tel:+251934815617" className="text-blue-600 hover:underline">+251 934 815 617 - Asegid Shegew</a>
+                              <div className="text-xs text-gray-500">or</div>
+                              <a href="tel:+251966214479" className="text-blue-600 hover:underline">+251 966 214 479 - Betel Teka</a>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-2">
+                            Please include "Summer Camp" and your full name in the payment note.
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* CBE Payment - Temporarily Disabled
+                      <div className="border rounded-lg p-4 bg-purple-50">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">CBE</div>
+                          <h4 className="font-bold text-purple-800">Summer Camp - Bank Transfer</h4>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold">Account Name:</span>
+                            <span>Meaza Mesfin</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold">Account Number:</span>
+                            <span>1000708766643</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold">Bank:</span>
+                            <span>Commercial Bank of Ethiopia (CBE)</span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-2">
+                            Please include "Summer Camp" and use your full name as reference when making the transfer.
+                          </div>
+                        </div>
+                      </div>
+                      */}
                     </div>
                   </div>
                 </div>
@@ -619,17 +674,17 @@ const Register = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-4">
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 sm:h-14 bg-orange-500 hover:bg-orange-600 text-white font-medium text-base sm:text-lg transition-colors mt-4"
+                <div className="flex justify-center mt-8">
+                  <Button
+                    type="submit"
+                    className="w-full sm:w-64 h-12 text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
                     disabled={isSubmitting || isUploading}
                   >
-                    {isUploading ? (
-                      <>
+                    {isSubmitting || isUploading ? (
+                      <div className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Processing...
-                      </>
+                      </div>
                     ) : (
                       'Submit Registration'
                     )}
@@ -640,7 +695,6 @@ const Register = () => {
           </Card>
         </div>
       </div>
-      
       <Footer />
     </div>
   );
