@@ -1,8 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/Footer";
-import PDFUpload from "@/components/PDFUpload";
-import PaymentNotice from "@/components/PaymentNotice"; // This component might become unused if payment verification is removed
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,9 +10,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
-import { transitionImages } from "@/utils/transitionImages";
+import { transitionImage or PDFs } from "@/utils/transitionImage or PDFs";
 import { Camera, Plus, X, Upload, Loader2, Check, FileText } from "lucide-react";
-import { submitRegistration, RegistrationFormData, uploadReceipt } from "@/lib/api"; // Removed verifyCBEPayment
+import { submitRegistration, RegistrationFormData, uploadReceipt } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 
 const registrationSchema = z.object({
@@ -44,19 +41,12 @@ const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAgeFocused, setIsAgeFocused] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentImageOrPDFIndex, setCurrentImageOrPDFIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isPaymentUploaded, setIsPaymentUploaded] = useState(false);
-  // Removed states related to previous payment verification logic
-  // const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  // const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'verified' | 'failed'>('pending');
-  // const [verificationResult, setVerificationResult] = useState<any>(null);
-
-  // Added state to store the uploaded receipt URL
-  const [uploadedReceiptUrl, setUploadedReceiptUrl] = useState<string | null>(null);
-  
   const hobbies = [
     'Reading', 'Sports', 'Singing', 'Drawing',
     'Swimming', 'Cooking', 'Photography', 'Gaming', 'Hiking',
@@ -66,7 +56,7 @@ const Register = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % transitionImages.length);
+      setCurrentImageOrPDFIndex((prevIndex) => (prevIndex + 1) % transitionImageOrPDFs.length);
     }, 4500);
 
     return () => clearInterval(interval);
@@ -100,17 +90,16 @@ const Register = () => {
     setValue("hobbies", value, { shouldValidate: true });
   };
 
-  // Removed handleDrop and dragActive state as PDFUpload component handles the drop now
-  // const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-  //   e.preventDefault();
-  //   e.stopPropagation();
-  //   setDragActive(false);
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
     
-  //   const file = e.dataTransfer.files?.[0];
-  //   if (file) {
-  //     handleFileUpload(file);
-  //   }
-  // };
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -119,58 +108,47 @@ const Register = () => {
   };
 
   const handleFileUpload = async (file: File) => {
-    console.log('File upload started');
+    // Reset previous state
     setReceiptFile(null);
-    setUploadedReceiptUrl(null); // Clear previous URL
     setUploadError(null);
     clearErrors('receipt');
     setError('receipt', { type: 'manual', message: '' });
-
-    // Validate file type (if it's not a PDF, ImgBB might handle it, but you might want to restrict)
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-        setUploadError('Invalid file type. Please upload an image or PDF file.');
-        setIsUploading(false);
-        return;
+    
+    // Check if file is a PDF or image or PDF
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Invalid file type. Please upload a PDF or image or PDF file.');
+      setIsPaymentUploaded(false);
+      return;
+    }
+    
+    const fileName = file.name.toLowerCase();
+    if (!fileName.includes('cbe')) {
+      setUploadError('Invalid receipt. Please upload a valid CBE payment receipt.');
+      setIsPaymentUploaded(false);
+      return;
     }
 
     setIsUploading(true);
+
     try {
-      // Upload file to ImgBB
+      // Upload the file to ImgBB
       const receiptData = await uploadReceipt(file);
       setReceiptFile(file);
-      setUploadedReceiptUrl(receiptData.url); // Store the URL received from ImgBB
-      setIsPaymentUploaded(true);
+      setValue('receipt', file, { shouldValidate: true });
       setUploadError(null);
-      
-      toast({
-        title: "Receipt Uploaded",
-        description: "Your receipt has been successfully uploaded!",
-        variant: "default"
-      });
-
+      setIsPaymentUploaded(true);
     } catch (err: any) {
       console.error('Error uploading file:', err);
       setUploadError(err.message || 'Failed to upload file. Please try again.');
-      setIsPaymentUploaded(false);
-      setUploadedReceiptUrl(null); // Reset URL on error
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: err.message || 'Failed to upload file. Please try again.',
-      });
     } finally {
       setIsUploading(false);
-      console.log('File upload finished');
     }
   };
 
-  // The processPayment function block was problematic and removed as per instructions and error analysis.
-  // If payment verification via CBE is still required, this function needs to be reimplemented fully.
-  // For now, the process relies on manual payment and receipt upload to ImgBB.
-
   const onSubmit = async (formData: RegistrationForm) => {
     try {
-      if (!receiptFile || !uploadedReceiptUrl) { // Ensure both file and its URL are present
+      if (!receiptFile) {
         toast({
           variant: "destructive",
           title: "Receipt Required",
@@ -178,12 +156,19 @@ const Register = () => {
         });
         return;
       }
-      setIsUploading(true); // Renamed from isSubmitting to isUploading for consistency with the button disable state
+
+      setIsUploading(true);
       
       // Add '09' prefix to phone number
       const phoneNumber = '09' + formData.emergencyContact;
-      
+      let receiptUrl = '';
+
       try {
+        // Upload receipt to ImgBB
+        const receiptData = await uploadReceipt(receiptFile);
+        receiptUrl = receiptData.url;
+        
+        // Prepare form data with correct types
         const registrationData: RegistrationFormData = {
           fullName: formData.fullName,
           age: parseInt(formData.age),
@@ -195,30 +180,19 @@ const Register = () => {
           hobbies: formData.hobbies,
           allergies: formData.allergies,
           isChurchMember: formData.isChurchMember || false,
-          receiptUrl: uploadedReceiptUrl, // Use the stored uploadedReceiptUrl
-          paymentDate: new Date().toISOString(),
-          // Default to 'pending' or 'completed' based on your backend payment verification flow
-          // If you have a separate backend verification, it might be 'pending' initially.
-          // For now, assuming payment is considered 'completed' upon receipt upload and form submission.
-          status: 'completed', 
+          receiptUrl: receiptUrl,
+          status: 'completed',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
 
+        // Submit registration with receipt
         const result = await submitRegistration(registrationData);
         
         if (result.success) {
           reset();
           setReceiptFile(null);
-          setUploadedReceiptUrl(null); // Clear URL after successful submission
-          setIsPaymentUploaded(false); // Reset upload status
-          
-          toast({
-            title: "Registration Successful",
-            description: "Your registration has been submitted!",
-            variant: "default"
-          });
-
+          // Navigate to thank you page after successful registration
           navigate('/thank-you', { 
             state: { 
               registrationId: result.id,
@@ -229,8 +203,8 @@ const Register = () => {
           throw new Error(result.error || 'Failed to submit registration');
         }
       } catch (error) {
-        console.error('Submission or upload error:', error);
-        throw new Error('Failed to submit registration. Please try again.');
+        console.error('Upload error:', error);
+        throw new Error('Failed to upload receipt. Please try again.');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -244,58 +218,50 @@ const Register = () => {
     }
   };
 
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-grow">
+        {/* Background Image or PDFs with Transition */}
+        <div className="fixed inset-0 -z-10">
+          {transitionImageOrPDFs.map((imageOrPDF, index) => (
+            <div
+              key={imageOrPDF}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentImageOrPDFIndex ? "opacity-100" : "opacity-0"
+              }`}
+              style={{
+                backgroundImage: `url(${imageOrPDF})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                transition: "opacity 1s ease-in-out",
+              }}
+            />
+          ))}
+          <div className="absolute inset-0 bg-black/70"></div>
+        </div>
 
-return (
-  <div className="min-h-screen flex flex-col">
-    <div className="flex-grow">
-      <div className="w-full max-w-6xl mx-auto py-4 sm:py-8 px-2 sm:px-4 relative z-10">
-        {/* Gallery button temporarily disabled
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/gallery')}
-            className="text-white hover:bg-white/10 h-10 w-full sm:w-auto sm:px-6 flex items-center justify-center sm:justify-start gap-2"
-          >
-            <Camera className="h-4 w-4" />
-            <span>Gallery Overview</span>
-          </Button>
-        */}
-      </div>
+        <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 relative z-10">
+          <Card className="backdrop-blur-sm bg-white/10 border-white/20 shadow-2xl overflow-hidden mb-8">
+            <CardHeader className="border-b border-white/10 p-4 sm:p-6">
+              <div className="text-center">
+                <CardTitle className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+                  Halwot Questers Summercamp Registration
+                </CardTitle>
+                <CardDescription className="text-white/80 text-base sm:text-lg mt-2">
+                  Fill out the form below to secure your spot
+                </CardDescription>
+              </div>
+            </CardHeader>
 
-      {/* Background Image or PDFs with Transition */}
-      <div className="fixed inset-0 -z-10">
-        {transitionImages.map((imageOrPDF, index) => (
-          <div
-            key={imageOrPDF}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentImageIndex ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              backgroundImage: `url(${imageOrPDF})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              transition: "opacity 1s ease-in-out",
-            }}
-          />
-        ))}
-        <div className="absolute inset-0 bg-black/70"></div>
-      </div>
-
-      <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 relative z-10">
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20 shadow-2xl overflow-hidden mb-8">
-          <CardHeader className="border-b border-white/10 p-4 sm:p-6">
-            <div className="text-center">
-              <CardTitle className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
-                Halwot Questers Summercamp Registration
-              </CardTitle>
-              <CardDescription className="text-white/80 text-base sm:text-lg mt-2">
-                Fill out the form below to secure your spot
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
+            <CardContent className="p-3 sm:p-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
               {/* Input Fields Grid */}
               <div className="w-full max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {/* Allergies */}
+        
+
+
+
                 {/* Full Name */}
                 <div className="space-y-1.5 sm:space-y-2 w-full">
                   <Label htmlFor="fullName" className="text-white text-sm sm:text-base">
@@ -389,7 +355,11 @@ return (
                     </p>
                   )}
                 </div>
-              </div> {/* End of Input Fields Grid */}
+
+
+
+
+              </div>
 
               {/* Grade Section */}
               <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -485,60 +455,144 @@ return (
                   <p className="text-white/60 text-xs sm:text-sm">
                     Please list any medical conditions, allergies, or special requirements we should be aware of.
                   </p>
-                </div> {/* End of Allergies div */}
-
-                {/* Payment Receipt Upload */}
-                <div className="w-full sm:col-span-2">
-                  <PDFUpload 
-                    isUploading={isUploading}
-                    uploadError={uploadError}
-                    onFileChange={handleFileChange}
-                    errors={errors}
-                    // Optionally pass receiptFile to PDFUpload if you want to display file name
-                    receiptFile={receiptFile}
-                  />
-                  {receiptFile && !uploadError && (
-                    <div className="mt-2 text-white text-sm flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      <span>{receiptFile.name} uploaded.</span>
-                      <Check className="h-4 w-4 text-green-400" />
-                    </div>
-                  )}
                 </div>
 
-                {/* Payment Methods */}
-                <div className="mt-4 space-y-4 w-full sm:col-span-2"> {/* Added w-full sm:col-span-2 for consistent layout */}
-                  {/* CBE Payment */}
-                  <div className="border-2 border-purple-400 rounded-lg p-4 bg-purple-50 shadow-md">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">CBE</div>
-                      <h4 className="font-bold text-purple-800 text-lg">Bank Transfer</h4>
-                    </div>
-                    <div className="space-y-3 text-sm">
-                      <p className="font-medium text-gray-800">Send payment to:</p>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-semibold min-w-[120px]">Account Name:</span>
-                          <span className="bg-white px-3 py-1 rounded border font-medium">Meaza Mesfin And Gulilat Yishak</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-semibold min-w-[120px]">Account Number:</span>
-                          <span className="bg-white px-3 py-1 rounded border font-mono font-medium">1000708766643</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-semibold min-w-[120px]">Bank:</span>
-                          <span className="bg-white px-3 py-1 rounded border">Commercial Bank of Ethiopia (CBE)</span>
+                {/* File Upload */}
+                <div className="space-y-4 w-full sm:col-span-2 pt-4">
+                  <div>
+                    <Label className="text-white text-sm sm:text-base">
+                      CBE Payment Information <span className="text-red-500">*</span>
+                    </Label>
+                    <p className="text-sm text-white/80 mt-1">
+                      Please make payment to: <span className="font-semibold">Meaza Mesfin And/Or Gulilat Yishak</span>
+                    </p>
+                    <p className="text-sm text-white/80 mt-1">
+                      Account Number: <span className="font-mono bg-white/10 px-2 py-0.5 rounded">1000708766643</span>
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Label className="text-white text-sm sm:text-base">
+                      Upload Payment Receipt <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="mt-2">
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                          <div className="flex text-sm text-gray-300">
+                            <label
+                              htmlFor="file-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-orange-500 hover:text-orange-400 focus-within:outline-none"
+                            >
+                              <span>Upload a file</span>
+                              <input
+                                id="file-upload"
+                                name="file-upload"
+                                type="file"
+                                className="sr-only"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleFileChange}
+                              />
+                            </label>
+                            <p className="pl-1 text-gray-300">or drag and drop</p>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            PDF or image file up to 5MB
+                          </p>
+                          {receiptFile && (
+                            <p className="text-sm text-green-400 mt-2">
+                              {receiptFile.name} uploaded successfully
+                            </p>
+                          )}
+                          {uploadError && (
+                            <p className="text-sm text-red-400 mt-2">
+                              {uploadError}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="text-sm text-purple-800 bg-purple-100 p-2 rounded mt-2">
-                       <strong>Please make sure to include summercamp on the reason of payment</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Notice */}
+                <div className={`border-l-4 p-4 rounded-md ${
+                  isPaymentUploaded 
+                    ? 'bg-green-50 border-green-400' 
+                    : uploadError 
+                      ? 'bg-red-50 border-red-400' 
+                      : 'bg-yellow-50 border-yellow-400'
+                }`}>
+                  <div className="space-y-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        {uploadError ? (
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        ) : isPaymentUploaded ? (
+                          <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="ml-3">
+                        <p className={`text-sm ${
+                          isPaymentUploaded ? 'text-green-700' : 'text-yellow-700'
+                        }`}>
+                          {isPaymentUploaded ? (
+                            <>
+                              <strong>Payment Submitted</strong> - Thank you for your payment of 1000 ETB for the summer camp. Our team will verify your payment shortly.
+                            </>
+                          ) : (
+                            <>
+                              <strong>Payment Required:</strong> Please complete your registration by making a payment of 1000 ETB for the summer camp using CBE and upload your receipt.
+                              {uploadError && (
+                                <span className="block mt-1 text-red-600 font-medium">
+                                  {uploadError}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* CBE Payment Information */}
+                    <div className="mt-4">
+                      <div className="border rounded-lg p-4 bg-purple-50">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">CBE</div>
+                          <h4 className="font-bold text-purple-800">Summer Camp - Bank Transfer</h4>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold w-24">Account Name:</span>
+                            <span>Meaza Mesfin And/Or Gulilat Yishak</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold w-24">Account #:</span>
+                            <span className="font-mono">1000708766643</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold w-24">Bank:</span>
+                            <span>Commercial Bank of Ethiopia (CBE)</span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-2">
+                            Please include "Summer Camp" and use your full name as reference when making the transfer.
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Church Member Checkbox */}
-                <div className="flex items-center space-x-2 pt-2 w-full sm:col-span-2"> {/* Added w-full sm:col-span-2 for consistent layout */}
+                <div className="flex items-center space-x-2 pt-2">
                   <input
                     type="checkbox"
                     id="isChurchMember"
@@ -549,33 +603,32 @@ return (
                     I am a member of the church
                   </label>
                 </div>
-              </div> {/* End of Grade Section and additional fields, wrapping the Payment and Church Member parts */}
 
-              {/* Submit Button */}
-              <div className="flex justify-center mt-8">
-                <Button
-                  type="submit"
-                  className="w-full h-12 text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
-                  disabled={isSubmitting || isUploading}
-                >
-                  {isSubmitting || isUploading ? (
-                    <div className="flex items-center justify-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </div>
-                  ) : (
-                    'Submit Registration'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                {/* Submit Button */}
+                <div className="flex justify-center mt-8">
+                  <Button
+                    type="submit"
+                    className="w-full sm:w-64 h-12 text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+                    disabled={isSubmitting || isUploading}
+                  >
+                    {isSubmitting || isUploading ? (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </div>
+                    ) : (
+                      <div>Submit Registration</div>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+      <Footer />
     </div>
-    <Footer />
-  </div>
-);
+  );
 };
 
 export default Register;
