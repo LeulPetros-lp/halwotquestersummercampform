@@ -123,7 +123,7 @@ export interface RegistrationFormData {
   grade: string;
   hobbies?: string;
   allergies?: string;
-  isChurchMember: boolean;
+
   
   // Payment Information
   receiptUrl?: string;
@@ -209,7 +209,7 @@ export const uploadReceipt = async (file: File): Promise<ReceiptData> => {
 
 export const submitRegistration = async (data: RegistrationFormData) => {
   try {
-    const docRef = await addDoc(collection(db, 'registrations'), {
+    const docRef = await addDoc(collection(db, 'registration-public'), {
       ...data,
       status: 'pending',
       createdAt: new Date().toISOString(),
@@ -224,7 +224,7 @@ export const submitRegistration = async (data: RegistrationFormData) => {
 
 export const updateRegistrationWithReceipt = async (registrationId: string, receiptData: ReceiptData) => {
   try {
-    const registrationRef = doc(db, 'registrations', registrationId);
+    const registrationRef = doc(db, 'registration-public', registrationId);
     await updateDoc(registrationRef, {
       receiptUrl: receiptData.url,
       receiptFileName: receiptData.fileName,

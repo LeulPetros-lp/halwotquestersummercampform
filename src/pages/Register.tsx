@@ -33,7 +33,7 @@ const registrationSchema = z.object({
   grade: z.string().min(1, "Please select a grade"),
   hobbies: z.string().min(1, "Please tell us about your hobbies"),
   allergies: z.string().optional(),
-  isChurchMember: z.boolean().default(false),
+
   receipt: z.any().optional()
     .refine((file) => !file || file.size <= 5 * 1024 * 1024, 'File size must be less than 5MB')
 });
@@ -92,7 +92,7 @@ const Register = () => {
       grade: "",
       hobbies: "",
       allergies: "",
-      isChurchMember: false,
+
     },
   });
   
@@ -194,7 +194,7 @@ const Register = () => {
           grade: formData.grade,
           hobbies: formData.hobbies,
           allergies: formData.allergies,
-          isChurchMember: formData.isChurchMember || false,
+
           receiptUrl: uploadedReceiptUrl, // Use the stored uploadedReceiptUrl
           paymentDate: new Date().toISOString(),
           // Default to 'pending' or 'completed' based on your backend payment verification flow
@@ -506,6 +506,15 @@ return (
                   )}
                 </div>
 
+                {/* Orange Warning Notice */}
+                <div className="w-full sm:col-span-2">
+                  <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4" role="alert">
+                    <p className="font-bold">Important Note</p>
+                    <p>Note: The teen must attend all 6 days of the camp.</p>
+                    <p>Payment Amount: 1000 Birr</p>
+                  </div>
+                </div>
+
                 {/* Payment Methods */}
                 <div className="mt-4 space-y-4 w-full sm:col-span-2"> {/* Added w-full sm:col-span-2 for consistent layout */}
                   {/* CBE Payment */}
@@ -535,19 +544,6 @@ return (
                       </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Church Member Checkbox */}
-                <div className="flex items-center space-x-2 pt-2 w-full sm:col-span-2"> {/* Added w-full sm:col-span-2 for consistent layout */}
-                  <input
-                    type="checkbox"
-                    id="isChurchMember"
-                    {...register("isChurchMember")}
-                    className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                  />
-                  <label htmlFor="isChurchMember" className="text-sm sm:text-base text-white">
-                    I am a member of the church
-                  </label>
                 </div>
               </div> {/* End of Grade Section and additional fields, wrapping the Payment and Church Member parts */}
 

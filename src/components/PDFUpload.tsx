@@ -7,6 +7,7 @@ interface PDFUploadProps {
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   errors?: any;
   onReset?: () => void; // Called when user clicks back/reset
+  receiptFile?: File | null;
 }
 
 const PDFUpload: React.FC<PDFUploadProps> = ({ isUploading, uploadError, onFileChange, errors, onReset }) => {
